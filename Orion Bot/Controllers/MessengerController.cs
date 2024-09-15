@@ -57,7 +57,15 @@ public class MessengerController : Controller
 
                 if (messageEvent.message != null)
                 {
-                    if (messageEvent.message.quick_reply != null)
+                    string messageText = messageEvent.message.text;
+
+                    if (messageText.ToLower() == "restart")
+                    {
+                        // Reset the user state and start the conversation again
+                        ResetUserState(senderId);
+                        StartConversation(senderId);
+                    }
+                    else if (messageEvent.message.quick_reply != null)
                     {
                         // Handle quick reply payloads for Yes/No buttons
                         HandleUserResponse(senderId, messageEvent.message.quick_reply.payload);
@@ -65,7 +73,6 @@ public class MessengerController : Controller
                     else if (messageEvent.message.text != null)
                     {
                         // Check if this is part of the registration process
-                        string messageText = messageEvent.message.text;
                         if (IsAwaitingMobileNumber(senderId))
                         {
                             SaveMobileNumber(senderId, messageText);
@@ -174,6 +181,40 @@ public class MessengerController : Controller
         var client = new System.Net.WebClient();
         client.Headers.Add(System.Net.HttpRequestHeader.ContentType, "application/json");
         client.UploadString($"https://graph.facebook.com/v2.6/me/messages?access_token={PageAccessToken}", JsonConvert.SerializeObject(messageData));
+    }
+
+    // Restart conversation and reset user state
+
+    private void ResetUserState(string recipientId)
+    {
+        // Example: Reset all user data or state in the database
+        ClearUserDataFromDatabase(recipientId);
+    }
+
+    // Mock method for clearing user data (replace with actual database logic)
+    private void ClearUserDataFromDatabase(string recipientId)
+    {
+        // Clear the user's registration or any ongoing state
+        // Implement this based on how you're tracking user data
+    }
+
+    private void StartConversation(string recipientId)
+    {
+        var messageData = new
+        {
+            recipient = new { id = recipientId },
+            message = new
+            {
+                text = "Hi! Let's start again. Are you a registered user?",
+                quick_replies = new[]
+                {
+                    new { content_type = "text", title = "Yes", payload = "YES" },
+                    new { content_type = "text", title = "No", payload = "NO" }
+                }
+            }
+        };
+
+        SendMessageToUser(messageData);
     }
 
     // Mock database and state management methods

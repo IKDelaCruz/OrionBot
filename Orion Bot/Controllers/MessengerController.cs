@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Web.Mvc;
 using Newtonsoft.Json;
 
@@ -67,8 +68,12 @@ public class MessengerController : Controller
                     }
                     else if (messageEvent.message.quick_reply != null)
                     {
-                        // Handle quick reply payloads for Yes/No buttons
-                        HandleUserResponse(senderId, messageEvent.message.quick_reply.payload);
+                        // Safely cast the payload to string and handle null values
+                        string payload = messageEvent.message.quick_reply?.payload?.ToString();
+                        if (!string.IsNullOrEmpty(payload))
+                        {
+                            HandleUserResponse(senderId, payload);
+                        }
                     }
                     else if (messageEvent.message.text != null)
                     {
@@ -100,8 +105,9 @@ public class MessengerController : Controller
         if (payload == "YES")
         {
             // User is registered, greet them
-            string userName = GetUserName(senderId); // Retrieve the user's name (mocked for now)
-            GreetUser(senderId, userName);
+            //string userName = GetUserName(senderId); // Retrieve the user's name (mocked for now)
+            var userProfile = GetUserProfile(senderId);
+            GreetUserWithGenderAndLocation(senderId, userProfile);
         }
         else if (payload == "NO")
         {
@@ -129,12 +135,18 @@ public class MessengerController : Controller
         SendMessageToUser(messageData);
     }
 
-    private void GreetUser(string recipientId, string userName)
+    private void GreetUserWithGenderAndLocation(string recipientId, dynamic userProfile)
     {
+        string userName = userProfile.first_name;
+        string gender = userProfile.gender == "male" ? "Mr." : "Ms.";
+        string locale = userProfile.locale;  // You can format the locale if necessary
+
+        string greeting = $"Welcome back, {gender} {userName} from {locale}! We're glad to have you.";
+
         var messageData = new
         {
             recipient = new { id = recipientId },
-            message = new { text = $"Welcome back, {userName}!" }
+            message = new { text = greeting }
         };
 
         SendMessageToUser(messageData);
@@ -256,5 +268,16 @@ public class MessengerController : Controller
     {
         // Mock logic to fetch the user's name from the database
         return "John Doe";
+    }
+    // Fetch user profile information from Facebook
+    private dynamic GetUserProfile(string userId)
+    {
+        string profileUrl = $"https://graph.facebook.com/{userId}?fields=first_name,gender,locale&access_token={PageAccessToken}";
+
+        using (var client = new WebClient())
+        {
+            var result = client.DownloadString(profileUrl);
+            return JsonConvert.DeserializeObject(result);
+        }
     }
 }

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Web.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 [AllowAnonymous]
 public class MessengerController : Controller
@@ -78,12 +80,12 @@ public class MessengerController : Controller
                     else if (messageEvent.message.text != null)
                     {
                         // Check if this is part of the registration process
-                        if (IsAwaitingMobileNumber(senderId))
+                        if (IsAwaitingMobileNumber(senderId, messageText))
                         {
                             SaveMobileNumber(senderId, messageText);
                             AskForAddress(senderId);
                         }
-                        else if (IsAwaitingAddress(senderId))
+                        else if (IsAwaitingAddress(senderId, messageText))
                         {
                             SaveAddress(senderId, messageText);
                             CompleteRegistration(senderId, GetSavedMobileNumber(senderId), messageText);
@@ -139,9 +141,10 @@ public class MessengerController : Controller
     {
         string userName = userProfile.first_name;
         string gender = userProfile.gender == "male" ? "Mr." : "Ms.";
+        string city = userProfile.location?.name;
         string locale = userProfile.locale;  // You can format the locale if necessary
 
-        string greeting = $"Welcome back, {gender} {userName} from {locale}! We're glad to have you.";
+        string greeting = $"Welcome back, {gender} {userName} from {city}! We're glad to have you.";
 
         var messageData = new
         {
@@ -179,14 +182,51 @@ public class MessengerController : Controller
         // Save the user's information in your database (mocked here)
         SaveUserDetails(recipientId, mobileNumber, address);
 
-        var messageData = new
+        // First, send a message confirming registration
+        var registrationMessage = new
         {
             recipient = new { id = recipientId },
             message = new { text = "Thank you for registering! Welcome to our platform." }
         };
 
-        SendMessageToUser(messageData);
+        SendMessageToUser(registrationMessage);
+
+        // Then, send a message with buttons to visit the website and YouTube
+        var buttonMessage = new
+        {
+            recipient = new { id = recipientId },
+            message = new
+            {
+                attachment = new
+                {
+                    type = "template",
+                    payload = new
+                    {
+                        template_type = "button",
+                        text = "You can also visit the following pages:",
+                        buttons = new[]
+                        {
+                        new
+                        {
+                            type = "web_url",
+                            url = "https://www.emigosolutions.com/",
+                            title = "Visit Website"
+                        },
+                        new
+                        {
+                            type = "web_url",
+                            url = "https://www.youtube.com/",
+                            title = "Visit YouTube"
+                        }
+                    }
+                    }
+                }
+            }
+        };
+
+        SendMessageToUser(buttonMessage);
     }
+
 
     private void SendMessageToUser(object messageData)
     {
@@ -231,16 +271,49 @@ public class MessengerController : Controller
 
     // Mock database and state management methods
 
-    private bool IsAwaitingMobileNumber(string recipientId)
+    private bool IsAwaitingMobileNumber(string recipientId, string mobileNumber)
     {
+        Regex mobileNumberRegex = new Regex(@"^(09\d{9}|(\+639)\d{9})$");
+
         // Placeholder logic to determine if we are waiting for the mobile number
-        return false;
+        if (string.IsNullOrEmpty(mobileNumber))
+        {
+            return false;
+        }
+
+        // Check if the mobile number matches the pattern
+        return mobileNumberRegex.IsMatch(mobileNumber);
     }
 
-    private bool IsAwaitingAddress(string recipientId)
+    private bool IsAwaitingAddress(string recipientId,string address)
     {
+        //https://maps.googleapis.com/maps/api/js?key=AIzaSyBBePsuAk6MI1aS351hp5rGuyjYz0ABQfc
         // Placeholder logic to determine if we are waiting for the address
-        return false;
+        string apiKey = "AIzaSyBBePsuAk6MI1aS351hp5rGuyjYz0ABQfc"; // Replace with your Google Maps API Key
+        string apiUrl = $"https://maps.googleapis.com/maps/api/geocode/json?address={Uri.EscapeDataString(address)}&key={apiKey}";
+
+        using (var client = new WebClient())
+        {
+            try
+            {
+                // Send request to Google Maps API
+                string response = client.DownloadString(apiUrl);
+                JObject jsonResponse = JObject.Parse(response);
+
+                // Check if the status is "OK" and if we have results
+                if (jsonResponse["status"].ToString() == "OK" && jsonResponse["results"].HasValues)
+                {
+                    return true; // Address is valid
+                }
+            }
+            catch (WebException ex)
+            {
+                // Handle any errors such as network issues or API quota exceeded
+                System.Diagnostics.Debug.WriteLine("Error calling Google Maps API: " + ex.Message);
+            }
+        }
+
+        return false; // Address is not valid or an error occurred
     }
 
     private void SaveMobileNumber(string recipientId, string mobileNumber)
@@ -272,7 +345,7 @@ public class MessengerController : Controller
     // Fetch user profile information from Facebook
     private dynamic GetUserProfile(string userId)
     {
-        string profileUrl = $"https://graph.facebook.com/{userId}?fields=first_name,gender,locale&access_token={PageAccessToken}";
+        string profileUrl = $"https://graph.facebook.com/{userId}?fields=first_name,gender,locale,location&access_token={PageAccessToken}";
 
         using (var client = new WebClient())
         {

@@ -5,7 +5,7 @@ using System.Web.Mvc;
 
 public class MessengerWebhookController : Controller
 {
-    private readonly string VerifyToken = "YOUR_VERIFY_TOKEN";
+    private readonly string VerifyToken = "EAALiYY9Syd8BO1S0oVnfQmBD9jjbkdrUHo6vp0ZBYGoGNEeZBhHWQlKWKKLXglzdfbBwFQXIgBr9r6anxTF0mmuz05u7tp3Q9iv9MmVkzslSPCcnTu2iZAwibFPngdt0m7yJ9RpfwWgbCZBUV8tRAQvoLnRe9JIKGiFYN0unoUVjLKIThYCfnaB08ZCgavIzEC0EfxZCIOx8OSpZB0I";
 
     // GET: Webhook (for verification)
     [HttpGet]

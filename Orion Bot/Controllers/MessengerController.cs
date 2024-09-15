@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 public class MessengerController : Controller
 {
     private readonly string VerifyToken = "YourSecureVerifyToken"; // Your verify token that matches Facebook's
-    private readonly string PageAccessToken = "EAALiYY9Syd8BO1S0oVnfQmBD9jjbkdrUHo6vp0ZBYGoGNEeZBhHWQlKWKKLXglzdfbBwFQXIgBr9r6anxTF0mmuz05u7tp3Q9iv9MmVkzslSPCcnTu2iZAwibFPngdt0m7yJ9RpfwWgbCZBUV8tRAQvoLnRe9JIKGiFYN0unoUVjLKIThYCfnaB08ZCgavIzEC0EfxZCIOx8OSpZB0I"; // Use your page access token
+    private readonly string PageAccessToken = "EAALiYY9Syd8BO1bEIRiLZCARD65ykIUnShQX8gngJcjtbvw4cPJjam5xUxk3RCvfAD2BRWGE3toJZBHWC7pwwtyO8F4UKZBPcoZCQZCK4ol5pDFmlWJnLx2vji3soZBnb8kfYXDeCzIwkt8WIO8vjsjNyCureYxOF9JDzoJgqjl7B0FcenV26WhA9yZBgDid6ZBdQcHpIFMw5Rx4nEBo"; // Use your page access token
 
     [HttpGet]
     public ActionResult Hello()

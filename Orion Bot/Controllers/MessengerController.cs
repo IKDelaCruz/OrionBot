@@ -15,7 +15,7 @@ public class MessengerController : Controller
     }
     // GET: Webhook - This handles the verification from Facebook
     [HttpGet]
-    public ActionResult Index()
+    public ActionResult Index(int id = 0)
     {
         // Access query string parameters directly using Request.QueryString
         string mode = Request.QueryString["hub.mode"];
@@ -35,7 +35,7 @@ public class MessengerController : Controller
 
     // POST: Webhook - This handles incoming messages and events from Facebook
     [HttpPost]
-    public ActionResult HandleWebhook()
+    public ActionResult Index()
     {
         // Read the body of the incoming request from Facebook
         string body;
